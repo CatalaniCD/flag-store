@@ -69,9 +69,11 @@ router.post("/store", requireSecret, async (request, env) => {
   return json({ success: true, savedAt, data }, { status: 201 });
 });
 
+//router.get("/store", requireSecret, async (request, env) => {
+// const { secret: _omit, ...data } = request.data;
+
 // GET /store — retrieve latest payload from KV
-router.get("/store", requireSecret, async (request, env) => {
-  const { secret: _omit, ...data } = request.data;
+router.get("/store", async (request, env) => {
 
   const entry = await env.SIGNAL_STORE.getWithMetadata(KV_KEY, { type: "json" });
 
