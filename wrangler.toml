@@ -1,3 +1,17 @@
-name = "my-worker"
+name = "signal-store"
 main = "src/index.js"
 compatibility_date = "2024-01-01"
+
+# ─── KV Namespace binding ─────────────────────────────────────────────────────
+# Step 1: Create the namespace via CLI:
+#   wrangler kv namespace create SIGNAL_STORE
+#
+# Step 2: Copy the returned `id` and paste it below.
+
+[[kv_namespaces]]
+binding = "SIGNAL_STORE"
+id      = "PASTE_YOUR_KV_ID_HERE"
+
+# ─── Secrets ──────────────────────────────────────────────────────────────────
+# Set via CLI — never hardcode in this file:
+#   wrangler secret put WEBHOOK_SECRET

@@ -1,100 +1,93 @@
 /**
- * Express.js — JSON Store Worker
+ * Cloudflare Worker — Stateful JSON Store (KV-backed)
+ * Router: itty-router (Express-style)
  *
- * POST /store        – save a JSON payload (protected by WEBHOOK_SECRET)
- * GET  /store        – retrieve the last saved JSON payload
- * GET  /health       – health check
+ * POST /store   – save a JSON payload to KV (protected by WEBHOOK_SECRET)
+ * GET  /store   – retrieve the last saved JSON payload from KV
+ * GET  /health  – health check
  *
- * ─── Environment Variables (.env) ────────────────────────────────────────────
- *   WEBHOOK_SECRET   – shared secret required on POST requests
- *   PORT             – port to listen on (default: 3000)
+ * ─── Environment Variables (Cloudflare Dashboard → Settings → Variables) ────
+ *   WEBHOOK_SECRET   – shared secret, send as header "x-secret" or body field
+ *
+ * ─── KV Binding (wrangler.toml) ──────────────────────────────────────────────
+ *   Binding name: SIGNAL_STORE
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-import express from "express";
-import dotenv  from "dotenv";
+import { AutoRouter, json, error } from "itty-router";
 
-dotenv.config();
+const KV_KEY = "latest_signal";
 
-const app       = express();
-const PORT      = process.env.PORT || 3000;
-const WH_SECRET = process.env.WEBHOOK_SECRET;
+// ─── Router ───────────────────────────────────────────────────────────────────
 
-app.use(express.json());
+const router = AutoRouter();
 
-// ─── In-memory store ──────────────────────────────────────────────────────────
+// ─── Middleware — auth ────────────────────────────────────────────────────────
 
-let store = {
-  data:      null,
-  savedAt:   null,
-};
+async function requireSecret(request, env) {
+  // Parse and cache body so handlers can reuse it
+  try {
+    request.data = await request.json();
+  } catch {
+    return error(400, { error: "Invalid JSON body" });
+  }
+
+  const secret = request.headers.get("x-secret") || request.data?.secret;
+  if (env.WEBHOOK_SECRET && secret !== env.WEBHOOK_SECRET) {
+    return error(401, { error: "Unauthorized" });
+  }
+}
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
-// Health check
-app.get("/health", (req, res) => {
-  res.json({
+// GET /health
+router.get("/health", async (request, env) => {
+  const entry = await env.SIGNAL_STORE.getWithMetadata(KV_KEY);
+
+  return json({
     status:  "ok",
-    hasData: store.data !== null,
-    savedAt: store.savedAt,
+    hasData: entry.value !== null,
+    savedAt: entry.metadata?.savedAt ?? null,
     time:    new Date().toISOString(),
   });
 });
 
-// POST /store — save JSON payload
-app.post("/store", (req, res) => {
-  // Validate shared secret (from header or body)
-  const secret = req.headers["x-secret"] || req.body?.secret;
-  if (WH_SECRET && secret !== WH_SECRET) {
-    return res.status(401).json({ error: "Unauthorized" });
+// POST /store — save payload to KV
+router.post("/store", requireSecret, async (request, env) => {
+  const { secret: _omit, ...data } = request.data;
+
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    return error(400, { error: "Body must be a JSON object" });
   }
 
-  const payload = req.body;
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-    return res.status(400).json({ error: "Body must be a JSON object" });
+  const savedAt = new Date().toISOString();
+
+  await env.SIGNAL_STORE.put(KV_KEY, JSON.stringify(data), {
+    metadata: { savedAt },
+  });
+
+  return json({ success: true, savedAt, data }, { status: 201 });
+});
+
+// GET /store — retrieve latest payload from KV
+router.get("/store", async (request, env) => {
+  const entry = await env.SIGNAL_STORE.getWithMetadata(KV_KEY, { type: "json" });
+
+  if (entry.value === null) {
+    return error(404, { error: "No data stored yet" });
   }
 
-  // Strip secret field from stored data if it was in the body
-  const { secret: _omit, ...data } = payload;
-
-  store.data    = data;
-  store.savedAt = new Date().toISOString();
-
-  console.log(`[STORE] Saved at ${store.savedAt}:`, data);
-
-  return res.status(201).json({
+  return json({
     success: true,
-    savedAt: store.savedAt,
-    data,
+    savedAt: entry.metadata?.savedAt ?? null,
+    data:    entry.value,
   });
 });
 
-// GET /store — retrieve last saved payload
-app.get("/store", (req, res) => {
-  if (store.data === null) {
-    return res.status(404).json({ error: "No data stored yet" });
-  }
+// ─── Catch-all 404 ────────────────────────────────────────────────────────────
 
-  return res.json({
-    success: true,
-    savedAt: store.savedAt,
-    data:    store.data,
-  });
-});
+router.all("*", () => error(404, { error: "Not found" }));
 
-// ─── Start server ─────────────────────────────────────────────────────────────
+// ─── Export ───────────────────────────────────────────────────────────────────
 
-app.listen(PORT, () => {
-  console.log(`
-  ┌─────────────────────────────────────────┐
-  │   JSON Store Worker                     │
-  │   Listening on http://localhost:${PORT}   │
-  │                                         │
-  │   POST /store  →  save JSON payload     │
-  │   GET  /store  →  retrieve payload      │
-  │   GET  /health →  health check          │
-  └─────────────────────────────────────────┘
-  `);
-});
-
-export default app;
+export default router;
