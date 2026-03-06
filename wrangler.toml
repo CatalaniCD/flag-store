@@ -10,7 +10,7 @@ compatibility_date = "2024-01-01"
 
 [[kv_namespaces]]
 binding = "SIGNAL_STORE"
-id      = "PASTE_YOUR_KV_ID_HERE"
+id      = "18680b4e65bf4b8491c5ace11fd76e5e"
 
 # ─── Secrets ──────────────────────────────────────────────────────────────────
 # Set via CLI — never hardcode in this file:
