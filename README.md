@@ -17,6 +17,46 @@ The Worker stores the document under the fixed KV key `latest_signal` and keeps
 a `savedAt` timestamp in KV metadata. Writes are last-write-wins; there is no
 history or delete endpoint.
 
+## Architecture at a glance
+
+These images are rendered from the Mermaid sources in
+[docs/design.md](docs/design.md). Each image is capped at 1080 x 1080 pixels.
+
+<a href="docs/diagrams/system-context.png">
+  <img src="docs/diagrams/system-context.png" alt="System context: clients, Worker routes, KV namespace, and shared secret" width="620" />
+</a>
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <a href="docs/diagrams/write-path.png">
+        <img src="docs/diagrams/write-path.png" alt="POST /store write sequence" width="100%" />
+      </a>
+      <br /><sub><b>Write path</b> - auth, validation, and KV write.</sub>
+    </td>
+    <td width="50%" valign="top">
+      <a href="docs/diagrams/read-paths.png">
+        <img src="docs/diagrams/read-paths.png" alt="GET /store and GET /health read sequences" width="100%" />
+      </a>
+      <br /><sub><b>Read paths</b> - document and health reads.</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <a href="docs/diagrams/data-lifecycle.png">
+        <img src="docs/diagrams/data-lifecycle.png" alt="KV entry lifecycle from empty to populated" width="100%" />
+      </a>
+      <br /><sub><b>KV lifecycle</b> - empty, populated, overwrite.</sub>
+    </td>
+    <td width="50%" valign="top">
+      <a href="docs/diagrams/stored-record.png">
+        <img src="docs/diagrams/stored-record.png" alt="Stored KV record data model" width="100%" />
+      </a>
+      <br /><sub><b>Stored record</b> - singleton key, payload, and metadata.</sub>
+    </td>
+  </tr>
+</table>
+
 ## Requirements
 
 - Node.js 18 or newer for Wrangler.
@@ -167,6 +207,12 @@ plan is in [docs/plan.md](docs/plan.md).
 .
 ├── README.md
 ├── docs/
+│   ├── diagrams/
+│   │   ├── data-lifecycle.png
+│   │   ├── read-paths.png
+│   │   ├── stored-record.png
+│   │   ├── system-context.png
+│   │   └── write-path.png
 │   ├── intent.md
 │   ├── design.md
 │   ├── plan.md

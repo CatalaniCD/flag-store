@@ -31,9 +31,11 @@ changing code.
 - [x] Add `docs/plan.md`.
 - [x] Add `docs/test.md`.
 - [x] Add root `README.md`.
+- [x] Render the architecture diagrams to `docs/diagrams/` at a maximum of
+  1080 x 1080 pixels and embed them in `README.md`.
 
-Verification: all five files exist, links resolve, and Mermaid blocks render in
-the Markdown preview or diagram CI.
+Verification: all five files exist, image links resolve, and Mermaid blocks
+render in the Markdown preview or diagram CI.
 
 ## Phase 1: Verification harness
 

@@ -47,7 +47,7 @@ This diagram shows runtime components and trust boundaries. It deliberately omit
 handler internals and request schemas.
 
 ```mermaid
-flowchart LR
+flowchart TD
     subgraph Untrusted["Untrusted - public internet"]
         C[API client / script]
     end
@@ -427,6 +427,9 @@ the next feature that stores sensitive data.
 - Mermaid blocks use standard `flowchart`, `sequenceDiagram`, `stateDiagram-v2`,
   and `erDiagram` syntax. They should be rendered in CI or a Markdown preview
   after changes.
+- Rendered PNGs for the README are in `docs/diagrams/` and are capped at
+  1080 x 1080 pixels. Regenerate them from the Mermaid blocks above when a
+  diagram changes.
 
 ## 7. Baseline decisions (ADR-lite)
 
